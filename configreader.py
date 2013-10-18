@@ -6,27 +6,30 @@ class ConfigException(Exception):
 
 class Config(dict):
     def __init__(self,filelike,namespace={}):
-        self._file = filelike
-        self._file.seek(0)
-        self._lines = self._file.read().splitlines()
-        self._file.seek(0)
-        self._load(namespace)
+        filelike.seek(0)
+        lines = filelike.read().splitlines()
+        filelike.seek(0)
+        self._load(namespace,filelike,lines)
 
-    def _load(self,namespace):
-        tree = ast.parse(self._file.read())
+    def _load(self,namespace,filelike,lines):
+        tree = ast.parse(filelike.read())
         evaluator = Evaluator(namespace)
         for node in tree.body:
             if isinstance(node,ast.Assign):
                 key = node.targets.pop().id
                 try:
                     value = evaluator.eval(node.value)
-                    self[key] = value
+                    if not key in self:
+                        self[key] = value
+                    else:
+                        raise ConfigException(
+                            'key "{0}" multiples times'.format(key))
                     # also update our namespace
                     evaluator._safe_names[key] = value
                 except Exception as e:
                     raise ConfigException(
                         'couldn\'t evaluate: {0}'.format(
-                            self._lines[node.lineno-1]))
+                            lines[node.lineno-1]))
 
 
 class Evaluator(object):
