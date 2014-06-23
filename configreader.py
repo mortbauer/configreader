@@ -1,5 +1,18 @@
 import ast
+import sys
 import operator
+import traceback
+
+def load(path,namespace={}):
+    import os
+    if not namespace:
+        namespace = {}
+        for x in dir(os.path):
+            if not x.startswith('_'):
+                namespace['os.path.{0}'.format(x)] = getattr(os.path,x)
+    with open(path,'r') as store:
+        config = Config(store,namespace=namespace)
+    return config
 
 class ConfigException(Exception):
     pass
@@ -17,6 +30,7 @@ class Config(dict):
         for node in tree.body:
             if isinstance(node,ast.Assign):
                 key = node.targets.pop().id
+                value = evaluator.eval(node.value)
                 try:
                     value = evaluator.eval(node.value)
                     if not key in self:
@@ -26,11 +40,12 @@ class Config(dict):
                             'key "{0}" multiples times'.format(key))
                     # also update our namespace
                     evaluator._safe_names[key] = value
+                except ConfigException as e:
+                    raise e
                 except Exception as e:
                     raise ConfigException(
                         'couldn\'t evaluate: {0}'.format(
                             lines[node.lineno-1]))
-
 
 class Evaluator(object):
     _safe_names = {'None': None, 'True': True, 'False': False}
@@ -44,6 +59,12 @@ class Evaluator(object):
     def Num(self,node):
         return node.n
 
+    def Set(self,node):
+        return set(map(self.eval, node.elts))
+
+    def NameConstant(self,node):
+        return node.value
+
     def Name(self,node):
         if node.id in self._safe_names:
             return self._safe_names[node.id]
@@ -54,7 +75,7 @@ class Evaluator(object):
         return tuple(map(self.eval, node.elts))
 
     def List(self,node):
-        return tuple(map(self.eval, node.elts))
+        return list(map(self.eval, node.elts))
 
     def Dict(self,node):
         return {self.eval(k):self.eval(v) for k, v
@@ -76,6 +97,9 @@ class Evaluator(object):
             return getattr(operator,opname)(left,right)
         elif hasattr(operator,'%s_'%opname):
             return getattr(operator,'%s_'%opname)(left,right)
+        else:
+            print('shit never was ment to go here')
+            return node
 
     def _get_func(self,value,attr):
         """ get the whole function path """
@@ -91,6 +115,9 @@ class Evaluator(object):
             return self._namespace[func](*args)
         else:
             raise ConfigException('"{0}" is not allowed'.format(func))
+
+    def Lambda(self,node):
+        return eval(compile(ast.Expression(node),'','eval'))
 
     def eval(self,node):
         return getattr(self,node.__class__.__name__)(node)
