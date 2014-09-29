@@ -6,6 +6,8 @@ import traceback
 
 
 def add_os_path_to_namespace(namespace=None):
+    """ convenience function to add all os.path functions to the secure
+    namespace """
     if namespace is None:
         namespace = {}
     for x in dir(os.path):
@@ -15,6 +17,8 @@ def add_os_path_to_namespace(namespace=None):
 
 
 def load(path, namespace=None):
+    """ convenience function to load the file with the os.path namespace added
+    """
     if namespace is None:
         namespace = {}
     add_os_path_to_namespace(namespace)
@@ -42,14 +46,13 @@ class Config(dict):
         for node in tree.body:
             if isinstance(node, ast.Assign):
                 key = node.targets.pop().id
-                value = evaluator.eval(node.value)
                 try:
                     value = evaluator.eval(node.value)
                     if key not in self:
                         self[key] = value
                     else:
                         raise ConfigException(
-                            'key "{0}" multiples times'.format(key))
+                            'trying to overwrite key "{0}"'.format(key))
                     # also update our namespace
                     evaluator._safe_names[key] = value
                 except ConfigException as e:
@@ -133,7 +136,11 @@ class Evaluator(object):
             raise ConfigException('"{0}" is not allowed'.format(func))
 
     def Lambda(self, node):
-        return eval(compile(ast.Expression(node), '', 'eval'))
+        raise ConfigException('lambda not supported')
 
     def eval(self, node):
-        return getattr(self, node.__class__.__name__)(node)
+        try:
+            meth = getattr(self, node.__class__.__name__)
+            return meth(node)
+        except AttributeError as e:
+            raise ConfigException('"{0}" not supported'.format(node))
