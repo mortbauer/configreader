@@ -1,6 +1,9 @@
 A simple but still powerfull Configuration Parser
 #################################################
 
+.. image:: https://secure.travis-ci.org/mortbauer/configreader.png?branch=master 
+        :target: https://secure.travis-ci.org/mortbauer/configreader
+
 There are quite many Configuration Parsers for Python out there, but well, they
 all kind of suck in there own way. Let me point out what I dislike:
 
