@@ -1,15 +1,21 @@
+import os
 import ast
 import sys
 import operator
 import traceback
 
-def load(path,namespace={}):
-    import os
-    if not namespace:
+def add_os_path_to_namespace(namespace=None):
+    if namespace is None:
         namespace = {}
-        for x in dir(os.path):
-            if not x.startswith('_'):
-                namespace['os.path.{0}'.format(x)] = getattr(os.path,x)
+    for x in dir(os.path):
+        if not x.startswith('_'):
+            namespace['os.path.{0}'.format(x)] = getattr(os.path,x)
+    return namespace
+
+def load(path,namespace=None):
+    if namespace is None:
+        namespace = {}
+    add_os_path_to_namespace(namespace)
     with open(path,'r') as store:
         config = Config(store,namespace=namespace)
     return config
