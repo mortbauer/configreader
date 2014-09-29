@@ -89,4 +89,4 @@ There are a few simple test cases in `tests` use best `py.test`_ to run them.
 .. _ast: http://docs.python.org/3.3/library/ast.html
 .. _operator: http://docs.python.org/3.3/library/operator.html
 .. _configparser: http://docs.python.org/3.3/library/configparser.html
-.. _pytest: https://pypi.python.org/pypi/pytest
+.. _py.test: https://pypi.python.org/pypi/pytest
